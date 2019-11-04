@@ -5,7 +5,7 @@ class MapsController < ApplicationController
   # GET /maps.json
   def index
     @invalid_chunks = []
-    @bounds = [600, 800]
+    @bounds = [1200, 800]
     @boxes = generate_boxes
   end
 
@@ -64,24 +64,24 @@ class MapsController < ApplicationController
   end
 
   private
-  # requirement: boxes need to be at least 10 px away from one another at both height and width
-  # 0 - 500 -- x point is 50 so the box is 50 + 50 so the points are 50 - 100 add bounds so 40 - 110
-  # 0 - 500 -- y point is 20 so the box is 20 + 50 so the points are 20 - 70 add bounds so 10 - 80
-  # if the pair generated has an x value in the blocked off groups and a y value in the corresponding y blocks, reject it.
-  def generate_random_valid_pair
+  def generate_random_valid_pair(room_size)
     max_bounds = [@bounds[0]-50, @bounds[1]-50]
-    random_pair = []
+    random_box = []
     valid = false
+    box_width = room_size[0] + 20
+    box_height = room_size[1] + 20
 
     if @invalid_chunks.empty?
-      random_pair = [rand(max_bounds[0]), rand(max_bounds[1])]
-      @invalid_chunks << random_pair
+      random_box = { x: rand(max_bounds[0]), y: rand(max_bounds[1]), height: box_height, width: box_width }
+      @invalid_chunks << random_box
     else
       until valid do
-        random_pair = [rand(max_bounds[0]), rand(max_bounds[1])]
+        random_box = { x: rand(max_bounds[0]), y: rand(max_bounds[1]), height: box_height, width: box_width }
         @invalid_chunks.each do |chunk|
-          if random_pair[0] > chunk[0] - 60 && random_pair[0] < chunk[0] + 60
-            if random_pair[1] > chunk[1] - 60 && random_pair[1] < chunk[1] + 60
+          width = chunk[:width] > box_width ? chunk[:width] : box_width
+          height = chunk[:height] > box_height ? chunk[:height] : box_height
+          if random_box[:x] > chunk[:x] - width && random_box[:x] < chunk[:x] + width
+            if random_box[:y] > chunk[:y] - height && random_box[:y] < chunk[:y] + height
               valid = false
               break
             end
@@ -89,18 +89,18 @@ class MapsController < ApplicationController
           valid = true
         end
       end
-      @invalid_chunks << random_pair
+      @invalid_chunks << random_box
     end
-    random_pair
+    random_box
   end
 
   def generate_boxes
-    # binding.pry
     boxes = []
     10.times do |index|
-      # binding.pry
-      valid_pair = generate_random_valid_pair
-      boxes << {key: index, width: 50, height: 50, x: valid_pair[0], y: valid_pair[1]}
+      height = rand(50..100)
+      width = rand(50..100)
+      valid_box = generate_random_valid_pair([width, height])
+      boxes << {key: index, width: width, height: height, x: valid_box[:x], y: valid_box[:y]}
     end
     boxes
   end
