@@ -15,7 +15,7 @@ export const Map = (props: MapProps) => {
                                         y={object.y} />) }
         <polyline
           points={props.pathPoints}
-          stroke="black"
+          stroke="red"
           strokeWidth="3"
           fill="none"
         />

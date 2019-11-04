@@ -8,7 +8,8 @@ class MapsController < ApplicationController
     @bounds = [1200, 800]
     @path_points = []
     @path_points_string = ''
-    @boxes = generate_boxes
+    @boxes = []
+    generate_boxes
     format_path_points
   end
 
@@ -75,10 +76,16 @@ class MapsController < ApplicationController
     box_height = room_size[1] + 20
 
     if @invalid_chunks.empty?
-      random_box = { x: rand(max_bounds[0]), y: rand(max_bounds[1]), height: box_height, width: box_width }
+      until valid do
+        random_box = { x: rand(max_bounds[0]), y: rand(max_bounds[1]), height: box_height, width: box_width }
+        if within_bounds?(random_box[:x], random_box[:y], room_size[0], room_size[1])
+          valid = true
+        end
+      end
       @invalid_chunks << random_box
     else
       until valid do
+        valid = false
         random_box = { x: rand(max_bounds[0]), y: rand(max_bounds[1]), height: box_height, width: box_width }
         @invalid_chunks.each do |chunk|
           width = chunk[:width] > box_width ? chunk[:width] : box_width
@@ -89,6 +96,10 @@ class MapsController < ApplicationController
               break
             end
           end
+          unless within_bounds?(random_box[:x], random_box[:y], room_size[0], room_size[1])
+            valid = false
+            break
+          end
           valid = true
         end
       end
@@ -97,13 +108,60 @@ class MapsController < ApplicationController
     random_box
   end
 
+  def within_bounds?(x, y, width, height)
+    rightmost_point = x + width
+    lower_point = y + height
+    if rightmost_point > @bounds[0] || lower_point > @bounds[1]
+      return false
+    end
+    true
+  end
+
   def update_path_points(new_box)
     if @path_points.empty?
-      @path_points = [[(new_box[:x] + new_box[:width]/2), new_box[:y]]]
+      @path_points = [[(new_box[:x] + new_box[:width]/2),  (new_box[:y] + new_box[:height]/2)]]
     else
-      previous_point = @path_points.last
-      @path_points << [previous_point[0], (new_box[:y] + new_box[:height]/2)]
-      @path_points << [(new_box[:x] + new_box[:width]/2), (new_box[:y] + new_box[:height]/2)]
+      find_proper_path(@boxes.last, new_box)
+    end
+  end
+
+  def find_proper_path(prev_box, new_box)
+    first_direction = which_direction([prev_box[:x], prev_box[:y]], [new_box[:x], new_box[:y]])
+
+    # The point where the line will exit the room
+    @path_points << exit_points(prev_box[:x], prev_box[:y], prev_box[:width], prev_box[:height])[first_direction]
+
+    new_x = new_box[:x] + new_box[:width]/2
+    new_y = new_box[:y] + new_box[:height]/2
+
+    if first_direction == :right || first_direction == :left
+      @path_points << [new_x, @path_points.last[1]]
+      @path_points << [new_x, new_y]
+    else
+      @path_points << [@path_points.last[0], new_y]
+      @path_points << [new_x, new_y]
+    end
+
+  end
+
+  def exit_points(x, y, width, height)
+    { left: [x, y + height/2], right: [x + width, y + height/2], up: [x + width/2, y], down: [x + width/2, y + height ] }
+  end
+
+  def which_direction(old_point, new_point)
+    # positive if left, negative is right
+    x_distance = old_point[0] - new_point[0]
+
+    # positive is up, negative is down
+    y_distance = old_point[1] - new_point[1]
+
+    # if positive, x weight is more, negative y weight is more
+    weight = x_distance.abs - y_distance.abs
+
+    if weight.positive?
+      x_distance.positive? ? :left : :right
+    else
+      y_distance.positive? ? :up : :down
     end
   end
 
@@ -114,15 +172,13 @@ class MapsController < ApplicationController
   end
 
   def generate_boxes
-    boxes = []
-    6.times do |index|
+    8.times do |index|
       height = rand(50..100)
       width = rand(50..100)
       valid_box = generate_random_valid_pair([width, height])
       new_box = {key: index, width: width, height: height, x: valid_box[:x], y: valid_box[:y]}
-      boxes << new_box
       update_path_points(new_box)
+      @boxes << new_box
     end
-    boxes
   end
 end
