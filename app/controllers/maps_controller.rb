@@ -6,7 +6,10 @@ class MapsController < ApplicationController
   def index
     @invalid_chunks = []
     @bounds = [1200, 800]
+    @path_points = []
+    @path_points_string = ''
     @boxes = generate_boxes
+    format_path_points
   end
 
   # GET /maps/1
@@ -94,13 +97,31 @@ class MapsController < ApplicationController
     random_box
   end
 
+  def update_path_points(new_box)
+    if @path_points.empty?
+      @path_points = [[(new_box[:x] + new_box[:width]/2), new_box[:y]]]
+    else
+      previous_point = @path_points.last
+      @path_points << [previous_point[0], (new_box[:y] + new_box[:height]/2)]
+      @path_points << [(new_box[:x] + new_box[:width]/2), (new_box[:y] + new_box[:height]/2)]
+    end
+  end
+
+  def format_path_points
+    @path_points.each do |point|
+      @path_points_string += "#{point[0]},#{point[1]} "
+    end
+  end
+
   def generate_boxes
     boxes = []
-    10.times do |index|
+    6.times do |index|
       height = rand(50..100)
       width = rand(50..100)
       valid_box = generate_random_valid_pair([width, height])
-      boxes << {key: index, width: width, height: height, x: valid_box[:x], y: valid_box[:y]}
+      new_box = {key: index, width: width, height: height, x: valid_box[:x], y: valid_box[:y]}
+      boxes << new_box
+      update_path_points(new_box)
     end
     boxes
   end

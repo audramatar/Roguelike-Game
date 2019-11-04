@@ -1,7 +1,7 @@
 import * as React from "react"
 import Box from '../../models/Box'
 
-export interface MapProps { bounds: any[]; boxes: Box[]; }
+export interface MapProps { bounds: any[]; boxes: Box[]; pathPoints: any }
 
 export const Map = (props: MapProps) => {
   return (
@@ -13,6 +13,12 @@ export const Map = (props: MapProps) => {
                                         height={object.height}
                                         x={object.x}
                                         y={object.y} />) }
+        <polyline
+          points={props.pathPoints}
+          stroke="black"
+          strokeWidth="3"
+          fill="none"
+        />
       </svg>
     </h1>
   );
