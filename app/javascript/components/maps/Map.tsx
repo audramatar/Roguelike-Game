@@ -15,8 +15,8 @@ export const Map = (props: MapProps) => {
                                         y={object.y} />) }
         <polyline
           points={props.pathPoints}
-          stroke="red"
-          strokeWidth="3"
+          stroke="black"
+          strokeWidth="2"
           fill="none"
         />
       </svg>
